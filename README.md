@@ -4,6 +4,8 @@
 
 A script to quickly swap hero abilities for ability draft.
 
+![Screenshot](./Assets/Screenshot_1.png)
+
 ## Installation
 
 ### Prerequisites
