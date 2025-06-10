@@ -1,0 +1,288 @@
+import os
+import re
+from dataclasses import dataclass
+
+import keyvalues3 as kv3
+from pyfzf.pyfzf import FzfPrompt
+from rich.text import Text
+from textual.app import App, ComposeResult
+from textual.coordinate import Coordinate
+from textual.widgets import DataTable, Footer, Header
+
+from config import Config
+
+
+@dataclass
+class Hero:
+    id: int
+    name: str
+    disabled: bool
+    hero_labs: bool
+    ability_weapon: str
+    ability_1: str
+    ability_2: str
+    ability_3: str
+    ability_4: str
+
+
+def colorize_bool(value: bool) -> Text:
+    if value:
+        return Text("True", style="green")
+    else:
+        return Text("False", style="red")
+
+
+class AbilityApp(App):
+    BINDINGS = [
+        ("f", "find_hero", "Find Hero"),
+        ("l", "toggle_localization", "Toggle Localization"),
+        ("ctrl+s", "save", "Save"),
+    ]
+    TITLE = "Artemon121's Hero Abilities Swapper"
+
+    heroes: dict[str, Hero]
+    localized_heroes: dict[str, str] = {}
+    localized_abilities: dict[str, str] = {}
+    localize_table = False
+    config: Config
+
+    def load_heroes(self) -> None:
+        """Load heroes from heroes.vdata"""
+        heroes_vdata = kv3.read(str(self.config.heroes_vdata_path))
+        heroes = {}
+        for key, value in heroes_vdata.items():
+            if key == "generic_data_type":
+                continue
+
+            try:
+                hero = Hero(
+                    id=value["m_HeroID"],
+                    name=key,
+                    disabled=value["m_bDisabled"],
+                    hero_labs=value["m_bInDevelopment"],
+                    ability_weapon=value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"],
+                    ability_1=value["m_mapBoundAbilities"]["ESlot_Signature_1"],
+                    ability_2=value["m_mapBoundAbilities"]["ESlot_Signature_2"],
+                    ability_3=value["m_mapBoundAbilities"]["ESlot_Signature_3"],
+                    ability_4=value["m_mapBoundAbilities"]["ESlot_Signature_4"],
+                )
+            except KeyError:
+                continue
+
+            heroes[key] = hero
+
+        self.heroes = heroes
+
+    def load_locale(self) -> None:
+        """Load localization for heroes and abilities."""
+        citadel_gc_path = (
+            self.config.deadlock_path
+            / "game"
+            / "citadel"
+            / "resource"
+            / "localization"
+            / "citadel_gc"
+            / "citadel_gc_english.txt"
+        )
+        citadel_heroes_path = (
+            self.config.deadlock_path
+            / "game"
+            / "citadel"
+            / "resource"
+            / "localization"
+            / "citadel_heroes"
+            / "citadel_heroes_english.txt"
+        )
+
+        pattern = r'"([^"]*)"\s+(?:"(.*)")'
+        locale_citadel_gc = {}
+        locale_citadel_heroes = {}
+
+        with open(citadel_gc_path, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+            for line in lines:
+                match = re.search(pattern, line)
+                if not match:
+                    continue
+                locale_citadel_gc[match.group(1)] = match.group(2)
+
+        with open(citadel_heroes_path, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+            for line in lines:
+                match = re.search(pattern, line)
+                if not match:
+                    continue
+                locale_citadel_heroes[match.group(1)] = match.group(2)
+
+        for name, hero in self.heroes.items():
+            self.localized_heroes[name] = locale_citadel_gc[name]
+            self.localized_abilities[hero.ability_weapon] = (
+                f"{locale_citadel_gc[name]} Weapon"
+            )
+            self.localized_abilities[hero.ability_1] = (
+                f"{locale_citadel_heroes.get(hero.ability_1, hero.ability_1)} ({locale_citadel_gc[name]} 1)"
+            )
+            self.localized_abilities[hero.ability_2] = (
+                f"{locale_citadel_heroes.get(hero.ability_2, hero.ability_2)} ({locale_citadel_gc[name]} 2)"
+            )
+            self.localized_abilities[hero.ability_3] = (
+                f"{locale_citadel_heroes.get(hero.ability_3, hero.ability_3)} ({locale_citadel_gc[name]} 3)"
+            )
+            self.localized_abilities[hero.ability_4] = (
+                f"{locale_citadel_heroes.get(hero.ability_4, hero.ability_4)} ({locale_citadel_gc[name]} Ult)"
+            )
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app."""
+        yield Header()
+        yield Footer()
+        yield DataTable()
+
+    def on_mount(self) -> None:
+        self.config = Config.load()
+        self.theme = self.config.theme
+        self.load_heroes()
+        self.load_locale()
+        self.populate_table()
+
+    def populate_table(self) -> None:
+        table = self.query_one(DataTable)
+        table.clear(True)
+
+        for key, label in [
+            ("id", "ID"),
+            ("name", "Name"),
+            ("disabled", "Disabled?"),
+            ("hero_labs", "Hero Labs?"),
+            ("ability_weapon", "Weapon"),
+            ("ability_1", "Ability 1"),
+            ("ability_2", "Ability 2"),
+            ("ability_3", "Ability 3"),
+            ("ability_4", "Ability 4"),
+        ]:
+            table.add_column(label, key=key)
+
+        for name, hero in self.heroes.items():
+            if not self.localize_table:
+                table.add_row(
+                    hero.id,
+                    name,
+                    colorize_bool(hero.disabled),
+                    colorize_bool(hero.hero_labs),
+                    hero.ability_weapon,
+                    hero.ability_1,
+                    hero.ability_2,
+                    hero.ability_3,
+                    hero.ability_4,
+                    key=hero.name,
+                )
+            else:
+                table.add_row(
+                    hero.id,
+                    self.localized_heroes[name],
+                    colorize_bool(hero.disabled),
+                    colorize_bool(hero.hero_labs),
+                    self.localized_abilities[hero.ability_weapon],
+                    self.localized_abilities[hero.ability_1],
+                    self.localized_abilities[hero.ability_2],
+                    self.localized_abilities[hero.ability_3],
+                    self.localized_abilities[hero.ability_4],
+                    key=hero.name,
+                )
+
+    def action_toggle_localization(self) -> None:
+        self.localize_table = not self.localize_table
+        table = self.query_one(DataTable)
+        cursor_pos = table.cursor_coordinate
+        self.populate_table()
+        table.move_cursor(row=cursor_pos.row, column=cursor_pos.column)
+
+    def action_save(self) -> None:
+        """Save the modified heroes.vdata to the output path."""
+        heroes_vdata = kv3.read(self.config.heroes_vdata_path)
+        for key, value in heroes_vdata.items():
+            if key == "generic_data_type":
+                continue
+
+            hero = self.heroes.get(key)
+            if hero is None:
+                continue
+
+            value["m_bDisabled"] = hero.disabled
+            value["m_bInDevelopment"] = hero.hero_labs
+            value["m_bAvailableInHeroLabs"] = hero.hero_labs
+            value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"] = hero.ability_weapon
+            value["m_mapBoundAbilities"]["ESlot_Signature_1"] = hero.ability_1
+            value["m_mapBoundAbilities"]["ESlot_Signature_2"] = hero.ability_2
+            value["m_mapBoundAbilities"]["ESlot_Signature_3"] = hero.ability_3
+            value["m_mapBoundAbilities"]["ESlot_Signature_4"] = hero.ability_4
+
+        if self.config.output_path.is_dir():
+            self.config.output_path = self.config.output_path / "heroes.vdata"
+        os.makedirs(self.config.output_path.parent, exist_ok=True)
+        kv3.write(heroes_vdata, str(self.config.output_path))
+        self.notify(f"Saved to {str(self.config.output_path)}")
+
+    def action_find_hero(self) -> None:
+        """Find hero by localized name and select it in the table"""
+        table = self.query_one(DataTable)
+        fzf = FzfPrompt()
+        with self.suspend():
+            selected_items = fzf.prompt(self.localized_heroes.values(), "-i +m")
+            if len(selected_items) == 0:
+                return
+
+        reversed_localized_heroes = {
+            value: key for key, value in self.localized_heroes.items()
+        }
+        selected_hero = reversed_localized_heroes[selected_items[0]]
+        row = table.get_row_index(selected_hero)
+        column = table.get_column_index("name")
+        table.move_cursor(row=row, column=column, animate=True)
+
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        table = event.data_table
+        cell_key = table.coordinate_to_cell_key(event.coordinate)
+        column_key = cell_key.column_key.value
+        hero_name = cell_key.row_key.value
+        if column_key is None or hero_name is None:
+            return
+        if column_key.startswith("ability_"):
+            return self.swap_ability(event.coordinate)
+        if column_key == "disabled" or column_key == "hero_labs":
+            new_value: bool = not self.heroes[hero_name].__getattribute__(column_key)
+            self.heroes[hero_name].__setattr__(column_key, new_value)
+            table.update_cell_at(event.coordinate, colorize_bool(new_value))
+
+    def swap_ability(self, cell_coordinate: Coordinate) -> None:
+        """Swap ability in the given table cell"""
+        table = self.query_one(DataTable)
+        cell_key = table.coordinate_to_cell_key(cell_coordinate)
+        column_key = cell_key.column_key.value
+        hero_name = cell_key.row_key.value
+        if column_key is None or hero_name is None:
+            return
+
+        fzf = FzfPrompt()
+        with self.suspend():
+            selected_items = fzf.prompt(self.localized_abilities.values(), "-i +m")
+            if len(selected_items) == 0:
+                return
+
+        reversed_localized_abilities = {
+            value: key for key, value in self.localized_abilities.items()
+        }
+        selected_ability = reversed_localized_abilities[selected_items[0]]
+
+        self.heroes[hero_name].__setattr__(column_key, selected_ability)
+        if not self.localize_table:
+            table.update_cell_at(cell_coordinate, selected_ability)
+        else:
+            table.update_cell_at(
+                cell_coordinate, self.localized_abilities[selected_ability]
+            )
+
+
+if __name__ == "__main__":
+    app = AbilityApp()
+    app.run()

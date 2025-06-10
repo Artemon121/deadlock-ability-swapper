@@ -1,0 +1,22 @@
+[project]
+name = "deadlock-ability-swapper"
+version = "0.1.0"
+description = "A simple script to quickly swap out hero abilities."
+authors = [
+    {name = "Artemon121",email = "60071510+Artemon121@users.noreply.github.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "<4.0.0,>=3.12"
+dependencies = [
+    "textual (>=3.3.0,<4.0.0)",
+    "pyfzf (>=0.3.1,<0.4.0)",
+    "keyvalues3 (>=0.2,<0.3)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

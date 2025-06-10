@@ -1,0 +1,11 @@
+# Path to Deadlock root folder
+deadlock_path = 'C:/Program Files (x86)/Steam/steamapps/common/Deadlock'
+
+# Path to decompiled `heroes.vdata` file
+heroes_vdata_path = './heroes.vdata'
+
+# Output path for generated `heroes.vdata` file
+output_path = './modded/heroes.vdata'
+
+# Textual theme. Can be changed at runtime via the Command Palette (Ctrl+P)
+theme = "tokyo-night"
