@@ -1,6 +1,7 @@
 import os
 import re
 from dataclasses import dataclass
+import io
 
 import keyvalues3 as kv3
 from pyfzf.pyfzf import FzfPrompt
@@ -41,6 +42,7 @@ class AbilityApp(App):
     TITLE = "Artemon121's Hero Abilities Swapper"
 
     heroes: dict[str, Hero]
+    abilities_vdata: kv3.KV3File
     localized_heroes: dict[str, str] = {}
     localized_abilities: dict[str, str] = {}
     localize_table = False
@@ -72,6 +74,16 @@ class AbilityApp(App):
             heroes[key] = hero
 
         self.heroes = heroes
+
+    def load_abilities(self) -> None:
+        """Load abilities from abilities.vdata"""
+        # hack because keyvalues3 library doesn't like when flags are sperated from values
+        with open(self.config.abilities_vdata_path, "r") as file:
+            vdata_string = file.read()
+        vdata_string = re.sub(r"(?:subclass:)\n\s*{", "subclass:{", vdata_string)
+        buffer = io.StringIO(vdata_string)
+        self.abilities_vdata = kv3.read(buffer)
+        self.abilities_vdata.pop("_include")
 
     def load_locale(self) -> None:
         """Load localization for heroes and abilities."""
@@ -132,6 +144,23 @@ class AbilityApp(App):
                 f"{locale_citadel_heroes.get(hero.ability_4, hero.ability_4)} ({locale_citadel_gc[name]} Ult)"
             )
 
+        for name in self.abilities_vdata.keys():
+            if name == "generic_data_type":
+                continue
+
+            if name in self.localized_abilities.keys():
+                continue
+
+            if "upgrade" in name:
+                continue
+
+            if locale_citadel_heroes.get(name, "") == "Melee":
+                continue
+
+            self.localized_abilities[name] = (
+                f"{locale_citadel_heroes.get(name, name)} (Unknown)"
+            )
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
@@ -142,6 +171,7 @@ class AbilityApp(App):
         self.config = Config.load()
         self.theme = self.config.theme
         self.load_heroes()
+        self.load_abilities()
         self.load_locale()
         self.populate_table()
 
@@ -217,10 +247,8 @@ class AbilityApp(App):
             value["m_mapBoundAbilities"]["ESlot_Signature_3"] = hero.ability_3
             value["m_mapBoundAbilities"]["ESlot_Signature_4"] = hero.ability_4
 
-        if self.config.output_path.is_dir():
-            self.config.output_path = self.config.output_path / "heroes.vdata"
-        os.makedirs(self.config.output_path.parent, exist_ok=True)
-        kv3.write(heroes_vdata, str(self.config.output_path))
+        os.makedirs(self.config.output_path, exist_ok=True)
+        kv3.write(heroes_vdata, str(self.config.output_path / "heroes.vdata"))
         self.notify(f"Saved to {str(self.config.output_path)}")
 
     def action_find_hero(self) -> None:

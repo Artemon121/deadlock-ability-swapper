@@ -4,8 +4,11 @@ deadlock_path = 'C:/Program Files (x86)/Steam/steamapps/common/Deadlock'
 # Path to decompiled `heroes.vdata` file
 heroes_vdata_path = './heroes.vdata'
 
-# Output path for generated `heroes.vdata` file
-output_path = './modded/heroes.vdata'
+# Path to decompiled `abilities.vdata` file
+abilities_vdata_path = './abilities.vdata'
+
+# Output path for generated `heroes.vdata` and `abilities.vdata` files
+output_path = './modded/'
 
 # Textual theme. Can be changed at runtime via the Command Palette (Ctrl+P)
 theme = "tokyo-night"

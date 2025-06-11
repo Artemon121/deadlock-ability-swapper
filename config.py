@@ -9,6 +9,7 @@ CONFIG_PATH = (Path(__file__).parent / "config.toml").resolve()
 class Config:
     deadlock_path: Path
     heroes_vdata_path: Path
+    abilities_vdata_path: Path
     output_path: Path
     theme: str
 
@@ -24,6 +25,7 @@ class Config:
         return Config(
             deadlock_path=Path(data["deadlock_path"]).resolve(),
             heroes_vdata_path=Path(data["heroes_vdata_path"]).resolve(),
+            abilities_vdata_path=Path(data["abilities_vdata_path"]).resolve(),
             output_path=Path(data["output_path"]).resolve(),
             theme=data["theme"],
         )
