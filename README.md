@@ -56,3 +56,4 @@ Controls:
 - Some unreleased abilities might crash the game
 - Some abilities work only on their original heroes (e.g. Bebop Uppercut, Ivy Ult)
 - Setting a non-weapon ability as a weapon and vice versa does not work
+- Vyper needs to have her passive because it's unlocked by default
