@@ -1,8 +1,8 @@
+import io
 import os
 import re
 import shutil
 from dataclasses import dataclass
-import io
 
 import keyvalues3 as kv3
 from pyfzf.pyfzf import FzfPrompt
@@ -45,6 +45,7 @@ class AbilityApp(App):
     heroes: dict[str, Hero]
     heroes_vdata: kv3.KV3File
     abilities_vdata: kv3.KV3File
+    ability_users: dict[str, list[str]] = {}
     localized_heroes: dict[str, str] = {}
     localized_abilities: dict[str, str] = {}
     localize_table = False
@@ -130,39 +131,50 @@ class AbilityApp(App):
                 locale_citadel_heroes[match.group(1)] = match.group(2)
 
         for name, hero in self.heroes.items():
-            self.localized_heroes[name] = locale_citadel_gc[name]
-            self.localized_abilities[hero.ability_weapon] = (
-                f"{locale_citadel_gc[name]} Weapon"
-            )
-            self.localized_abilities[hero.ability_1] = (
-                f"{locale_citadel_heroes.get(hero.ability_1, hero.ability_1)} ({locale_citadel_gc[name]} 1)"
-            )
-            self.localized_abilities[hero.ability_2] = (
-                f"{locale_citadel_heroes.get(hero.ability_2, hero.ability_2)} ({locale_citadel_gc[name]} 2)"
-            )
-            self.localized_abilities[hero.ability_3] = (
-                f"{locale_citadel_heroes.get(hero.ability_3, hero.ability_3)} ({locale_citadel_gc[name]} 3)"
-            )
-            self.localized_abilities[hero.ability_4] = (
-                f"{locale_citadel_heroes.get(hero.ability_4, hero.ability_4)} ({locale_citadel_gc[name]} Ult)"
-            )
+            localized_name = locale_citadel_gc.get(name, name)
+            self.localized_heroes[name] = localized_name
+
+            abilities = {
+                "Weapon": hero.ability_weapon,
+                "1": hero.ability_1,
+                "2": hero.ability_2,
+                "3": hero.ability_3,
+                "Ult": hero.ability_4,
+            }
+
+            for slot, ability in abilities.items():
+                if ability not in self.ability_users:
+                    self.ability_users[ability] = []
+
+                self.ability_users[ability].append(f"{localized_name} {slot}")
+
+        for name, hero in self.heroes.items():
+            localized_name = self.localized_heroes[name]
+            self.localized_abilities[hero.ability_weapon] = f"{localized_name} Weapon"
+
+            for ability in [
+                hero.ability_1,
+                hero.ability_2,
+                hero.ability_3,
+                hero.ability_4,
+            ]:
+                if ability in self.localized_abilities:
+                    continue
+
+                base_name = locale_citadel_heroes.get(ability, ability)
+                users = self.ability_users.get(ability, [])
+                self.localized_abilities[ability] = f"{base_name} ({', '.join(users)})"
 
         for name in self.abilities_vdata.keys():
-            if name == "generic_data_type":
+            if (
+                name == "generic_data_type"
+                or name in self.localized_abilities
+                or "upgrade" in name
+                or locale_citadel_heroes.get(name, "") == "Melee"
+            ):
                 continue
-
-            if name in self.localized_abilities.keys():
-                continue
-
-            if "upgrade" in name:
-                continue
-
-            if locale_citadel_heroes.get(name, "") == "Melee":
-                continue
-
-            self.localized_abilities[name] = (
-                f"{locale_citadel_heroes.get(name, name)} (Unknown)"
-            )
+            ability_localized = locale_citadel_heroes.get(name, name)
+            self.localized_abilities[name] = f"{ability_localized} (Unknown)"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
