@@ -50,3 +50,9 @@ Controls:
 - `Ctrl+Q`: Quit
 
 4. Compile and pack the generated files like with any other Deadlock mod. I recommend using [DeadPacker](https://github.com/Artemon121/DeadPacker).
+
+## Limitations
+
+- Some unreleased abilities might crash the game
+- Some abilities work only on their original heroes (e.g. Bebop Uppercut, Ivy Ult)
+- Setting a non-weapon ability as a weapon and vice versa does not work
