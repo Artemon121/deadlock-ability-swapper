@@ -33,7 +33,7 @@ poetry install
 ## Usage
 
 1. Open `Deadlock/game/citadel/pak01_dir.vpk` in Source 2 Viewer, then decompile & export `scripts/heroes.vdata`
-2. Fill out all settings in `config.toml`
+2. Copy `config.example.toml`, rename it to `config.toml` and fill out all settings in it
 3. Run the script:
 
 ```sh
