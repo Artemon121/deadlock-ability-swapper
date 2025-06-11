@@ -227,6 +227,46 @@ class AbilityApp(App):
         self.populate_table()
         table.move_cursor(row=cursor_pos.row, column=cursor_pos.column)
 
+    def ensure_signature(self, ability_name: str) -> str:
+        """
+        Creates a copy of the ability with the ability type set to Signature and returns it's name.
+
+        If the ability type is already Signature, returns the input name.
+        """
+        if (
+            self.abilities_vdata[ability_name]["m_eAbilityType"]
+            == "EAbilityType_Signature"
+        ):
+            return ability_name
+
+        # TODO: fix localization
+        generated_name = f"{ability_name}_generated_signature"
+        self.abilities_vdata[generated_name] = {
+            "_multibase": [ability_name],
+            "m_eAbilityType": "EAbilityType_Signature",
+        }
+        return generated_name
+
+    def ensure_ultimate(self, ability_name: str) -> str:
+        """
+        Creates a copy of the ability with the ability type set to Ultimate and returns it's name.
+
+        If the ability type is already Ultimate, returns the input name.
+        """
+        if (
+            self.abilities_vdata[ability_name]["m_eAbilityType"]
+            == "EAbilityType_Ultimate"
+        ):
+            return ability_name
+
+        # TODO: fix localization
+        generated_name = f"{ability_name}_generated_ultimate"
+        self.abilities_vdata[generated_name] = {
+            "_multibase": [ability_name],
+            "m_eAbilityType": "EAbilityType_Ultimate",
+        }
+        return generated_name
+
     def action_save(self) -> None:
         """Save the modified heroes.vdata to the output path."""
         heroes_vdata = kv3.read(self.config.heroes_vdata_path)
@@ -242,13 +282,24 @@ class AbilityApp(App):
             value["m_bInDevelopment"] = hero.hero_labs
             value["m_bAvailableInHeroLabs"] = hero.hero_labs
             value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"] = hero.ability_weapon
-            value["m_mapBoundAbilities"]["ESlot_Signature_1"] = hero.ability_1
-            value["m_mapBoundAbilities"]["ESlot_Signature_2"] = hero.ability_2
-            value["m_mapBoundAbilities"]["ESlot_Signature_3"] = hero.ability_3
-            value["m_mapBoundAbilities"]["ESlot_Signature_4"] = hero.ability_4
+            value["m_mapBoundAbilities"]["ESlot_Signature_1"] = self.ensure_signature(
+                hero.ability_1
+            )
+            value["m_mapBoundAbilities"]["ESlot_Signature_2"] = self.ensure_signature(
+                hero.ability_2
+            )
+            value["m_mapBoundAbilities"]["ESlot_Signature_3"] = self.ensure_signature(
+                hero.ability_3
+            )
+            value["m_mapBoundAbilities"]["ESlot_Signature_4"] = self.ensure_ultimate(
+                hero.ability_4
+            )
 
         os.makedirs(self.config.output_path, exist_ok=True)
         kv3.write(heroes_vdata, str(self.config.output_path / "heroes.vdata"))
+        kv3.write(
+            self.abilities_vdata, str(self.config.output_path / "abilities.vdata")
+        )
         self.notify(f"Saved to {str(self.config.output_path)}")
 
     def action_find_hero(self) -> None:
