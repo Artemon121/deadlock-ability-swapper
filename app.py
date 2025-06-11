@@ -1,6 +1,8 @@
 import os
 import re
+import shutil
 from dataclasses import dataclass
+import io
 
 import keyvalues3 as kv3
 from pyfzf.pyfzf import FzfPrompt
@@ -41,16 +43,19 @@ class AbilityApp(App):
     TITLE = "Artemon121's Hero Abilities Swapper"
 
     heroes: dict[str, Hero]
+    heroes_vdata: kv3.KV3File
+    abilities_vdata: kv3.KV3File
     localized_heroes: dict[str, str] = {}
     localized_abilities: dict[str, str] = {}
     localize_table = False
+    aditional_abilities_localization: dict[str, str] = {}
     config: Config
 
     def load_heroes(self) -> None:
         """Load heroes from heroes.vdata"""
-        heroes_vdata = kv3.read(str(self.config.heroes_vdata_path))
+        self.heroes_vdata = kv3.read(str(self.config.heroes_vdata_path))
         heroes = {}
-        for key, value in heroes_vdata.items():
+        for key, value in self.heroes_vdata.items():
             if key == "generic_data_type":
                 continue
 
@@ -72,6 +77,16 @@ class AbilityApp(App):
             heroes[key] = hero
 
         self.heroes = heroes
+
+    def load_abilities(self) -> None:
+        """Load abilities from abilities.vdata"""
+        # hack because keyvalues3 library doesn't like when flags are sperated from values
+        with open(self.config.abilities_vdata_path, "r") as file:
+            vdata_string = file.read()
+        vdata_string = re.sub(r"(?:subclass:)\n\s*{", "subclass:{", vdata_string)
+        buffer = io.StringIO(vdata_string)
+        self.abilities_vdata = kv3.read(buffer)
+        self.abilities_vdata.pop("_include")
 
     def load_locale(self) -> None:
         """Load localization for heroes and abilities."""
@@ -132,6 +147,23 @@ class AbilityApp(App):
                 f"{locale_citadel_heroes.get(hero.ability_4, hero.ability_4)} ({locale_citadel_gc[name]} Ult)"
             )
 
+        for name in self.abilities_vdata.keys():
+            if name == "generic_data_type":
+                continue
+
+            if name in self.localized_abilities.keys():
+                continue
+
+            if "upgrade" in name:
+                continue
+
+            if locale_citadel_heroes.get(name, "") == "Melee":
+                continue
+
+            self.localized_abilities[name] = (
+                f"{locale_citadel_heroes.get(name, name)} (Unknown)"
+            )
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
@@ -142,6 +174,7 @@ class AbilityApp(App):
         self.config = Config.load()
         self.theme = self.config.theme
         self.load_heroes()
+        self.load_abilities()
         self.load_locale()
         self.populate_table()
 
@@ -197,10 +230,126 @@ class AbilityApp(App):
         self.populate_table()
         table.move_cursor(row=cursor_pos.row, column=cursor_pos.column)
 
+    def ensure_signature(self, ability_name: str) -> str:
+        """
+        Creates a copy of the ability with the ability type set to Signature and returns it's name.
+
+        If the ability type is already Signature, returns the input name.
+        """
+        if (
+            self.abilities_vdata[ability_name]["m_eAbilityType"]
+            == "EAbilityType_Signature"
+        ):
+            return ability_name
+
+        generated_name = f"{ability_name}_signature"
+        self.abilities_vdata[generated_name] = {
+            "_multibase": [ability_name],
+            "m_eAbilityType": "EAbilityType_Signature",
+        }
+        self.aditional_abilities_localization[generated_name] = ability_name
+        return generated_name
+
+    def ensure_ultimate(self, ability_name: str) -> str:
+        """
+        Creates a copy of the ability with the ability type set to Ultimate and returns it's name.
+
+        If the ability type is already Ultimate, returns the input name.
+        """
+        if (
+            self.abilities_vdata[ability_name]["m_eAbilityType"]
+            == "EAbilityType_Ultimate"
+        ):
+            return ability_name
+
+        generated_name = f"{ability_name}_ultimate"
+        self.abilities_vdata[generated_name] = {
+            "_multibase": [ability_name],
+            "m_eAbilityType": "EAbilityType_Ultimate",
+        }
+        self.aditional_abilities_localization[generated_name] = ability_name
+        return generated_name
+
+    def ensure_unique(self, abilities: list[str]) -> list[str]:
+        """Given a list of ability names, generate new ones if the ability is not unique"""
+        count_map = {}
+        output = []
+        for ability_name in abilities:
+            if ability_name not in count_map.keys():
+                count_map[ability_name] = 0
+                output.append(ability_name)
+                continue
+            count_map[ability_name] += 1
+
+            generated_name = f"{ability_name}_{count_map[ability_name]}"
+            self.abilities_vdata[generated_name] = {
+                "_multibase": [ability_name],
+            }
+            self.aditional_abilities_localization[generated_name] = ability_name
+            output.append(generated_name)
+
+        return output
+
+    def save_aditional_localization(self) -> None:
+        for language in [
+            "brazilian",
+            "czech",
+            "english",
+            "french",
+            "german",
+            "indonesian",
+            "italian",
+            "japanese",
+            "koreana",
+            "latam",
+            "polish",
+            "russian",
+            "schinese",
+            "spanish",
+            "thai",
+            "turkish",
+            "ukrainian",
+        ]:
+            citadel_heroes_path = (
+                self.config.deadlock_path
+                / "game"
+                / "citadel"
+                / "resource"
+                / "localization"
+                / "citadel_heroes"
+                / f"citadel_heroes_{language}.txt"
+            )
+            out_heroes_path = (
+                self.config.output_path
+                / "resource"
+                / "localization"
+                / "citadel_heroes"
+                / f"citadel_heroes_{language}.txt"
+            )
+            os.makedirs(out_heroes_path.parent, exist_ok=True)
+            shutil.copy(citadel_heroes_path, out_heroes_path)
+
+            with open(out_heroes_path, "r", encoding="utf-8") as file:
+                content = file.read()
+                lines = []
+                for key, value in self.aditional_abilities_localization.items():
+                    match = re.search(rf'"{value}"\s+(?:"(.*)")', content)
+                    if match is None:
+                        continue
+                    lines.append(f'"{key}" "{match.group(1)}"')
+
+            with open(out_heroes_path, "w", encoding="utf-8") as file:
+                file.write(
+                    re.sub(
+                        r'"Tokens"\s*\n\s*{',
+                        f'"Tokens" {{\n\t\t{"\n\t\t".join(lines)}',
+                        content,
+                    )
+                )
+
     def action_save(self) -> None:
         """Save the modified heroes.vdata to the output path."""
-        heroes_vdata = kv3.read(self.config.heroes_vdata_path)
-        for key, value in heroes_vdata.items():
+        for key, value in self.heroes_vdata.items():
             if key == "generic_data_type":
                 continue
 
@@ -212,15 +361,25 @@ class AbilityApp(App):
             value["m_bInDevelopment"] = hero.hero_labs
             value["m_bAvailableInHeroLabs"] = hero.hero_labs
             value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"] = hero.ability_weapon
-            value["m_mapBoundAbilities"]["ESlot_Signature_1"] = hero.ability_1
-            value["m_mapBoundAbilities"]["ESlot_Signature_2"] = hero.ability_2
-            value["m_mapBoundAbilities"]["ESlot_Signature_3"] = hero.ability_3
-            value["m_mapBoundAbilities"]["ESlot_Signature_4"] = hero.ability_4
 
-        if self.config.output_path.is_dir():
-            self.config.output_path = self.config.output_path / "heroes.vdata"
-        os.makedirs(self.config.output_path.parent, exist_ok=True)
-        kv3.write(heroes_vdata, str(self.config.output_path))
+            abilities = self.ensure_unique(
+                [
+                    self.ensure_signature(hero.ability_1),
+                    self.ensure_signature(hero.ability_2),
+                    self.ensure_signature(hero.ability_3),
+                    self.ensure_ultimate(hero.ability_4),
+                ]
+            )
+
+            for i, ability in enumerate(abilities):
+                value["m_mapBoundAbilities"][f"ESlot_Signature_{i + 1}"] = ability
+
+        os.makedirs(self.config.output_path, exist_ok=True)
+        kv3.write(self.heroes_vdata, str(self.config.output_path / "heroes.vdata"))
+        kv3.write(
+            self.abilities_vdata, str(self.config.output_path / "abilities.vdata")
+        )
+        self.save_aditional_localization()
         self.notify(f"Saved to {str(self.config.output_path)}")
 
     def action_find_hero(self) -> None:
