@@ -42,6 +42,7 @@ class AbilityApp(App):
     TITLE = "Artemon121's Hero Abilities Swapper"
 
     heroes: dict[str, Hero]
+    heroes_vdata: kv3.KV3File
     abilities_vdata: kv3.KV3File
     localized_heroes: dict[str, str] = {}
     localized_abilities: dict[str, str] = {}
@@ -50,9 +51,9 @@ class AbilityApp(App):
 
     def load_heroes(self) -> None:
         """Load heroes from heroes.vdata"""
-        heroes_vdata = kv3.read(str(self.config.heroes_vdata_path))
+        self.heroes_vdata = kv3.read(str(self.config.heroes_vdata_path))
         heroes = {}
-        for key, value in heroes_vdata.items():
+        for key, value in self.heroes_vdata.items():
             if key == "generic_data_type":
                 continue
 
@@ -269,8 +270,7 @@ class AbilityApp(App):
 
     def action_save(self) -> None:
         """Save the modified heroes.vdata to the output path."""
-        heroes_vdata = kv3.read(self.config.heroes_vdata_path)
-        for key, value in heroes_vdata.items():
+        for key, value in self.heroes_vdata.items():
             if key == "generic_data_type":
                 continue
 
@@ -296,7 +296,7 @@ class AbilityApp(App):
             )
 
         os.makedirs(self.config.output_path, exist_ok=True)
-        kv3.write(heroes_vdata, str(self.config.output_path / "heroes.vdata"))
+        kv3.write(self.heroes_vdata, str(self.config.output_path / "heroes.vdata"))
         kv3.write(
             self.abilities_vdata, str(self.config.output_path / "abilities.vdata")
         )
