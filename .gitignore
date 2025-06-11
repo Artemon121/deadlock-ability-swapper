@@ -1,5 +1,6 @@
 config.toml
 *.vdata
+citadel_*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

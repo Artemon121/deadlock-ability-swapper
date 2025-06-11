@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from dataclasses import dataclass
 import io
 
@@ -47,6 +48,7 @@ class AbilityApp(App):
     localized_heroes: dict[str, str] = {}
     localized_abilities: dict[str, str] = {}
     localize_table = False
+    aditional_abilities_localization: dict[str, str] = {}
     config: Config
 
     def load_heroes(self) -> None:
@@ -240,12 +242,12 @@ class AbilityApp(App):
         ):
             return ability_name
 
-        # TODO: fix localization
         generated_name = f"{ability_name}_signature"
         self.abilities_vdata[generated_name] = {
             "_multibase": [ability_name],
             "m_eAbilityType": "EAbilityType_Signature",
         }
+        self.aditional_abilities_localization[generated_name] = ability_name
         return generated_name
 
     def ensure_ultimate(self, ability_name: str) -> str:
@@ -260,12 +262,12 @@ class AbilityApp(App):
         ):
             return ability_name
 
-        # TODO: fix localization
         generated_name = f"{ability_name}_ultimate"
         self.abilities_vdata[generated_name] = {
             "_multibase": [ability_name],
             "m_eAbilityType": "EAbilityType_Ultimate",
         }
+        self.aditional_abilities_localization[generated_name] = ability_name
         return generated_name
 
     def ensure_unique(self, abilities: list[str]) -> list[str]:
@@ -283,9 +285,67 @@ class AbilityApp(App):
             self.abilities_vdata[generated_name] = {
                 "_multibase": [ability_name],
             }
+            self.aditional_abilities_localization[generated_name] = ability_name
             output.append(generated_name)
 
         return output
+
+    def save_aditional_localization(self) -> None:
+        for language in [
+            "brazilian",
+            "czech",
+            "english",
+            "french",
+            "german",
+            "indonesian",
+            "italian",
+            "japanese",
+            "koreana",
+            "latam",
+            "polish",
+            "russian",
+            "schinese",
+            "spanish",
+            "thai",
+            "turkish",
+            "ukrainian",
+        ]:
+            citadel_heroes_path = (
+                self.config.deadlock_path
+                / "game"
+                / "citadel"
+                / "resource"
+                / "localization"
+                / "citadel_heroes"
+                / f"citadel_heroes_{language}.txt"
+            )
+            out_heroes_path = (
+                self.config.output_path
+                / "resource"
+                / "localization"
+                / "citadel_heroes"
+                / f"citadel_heroes_{language}.txt"
+            )
+            os.makedirs(out_heroes_path.parent, exist_ok=True)
+            shutil.copy(citadel_heroes_path, out_heroes_path)
+
+            with open(out_heroes_path, "r", encoding="utf-8") as file:
+                content = file.read()
+                lines = []
+                for key, value in self.aditional_abilities_localization.items():
+                    match = re.search(rf'"{value}"\s+(?:"(.*)")', content)
+                    if match is None:
+                        continue
+                    lines.append(f'"{key}" "{match.group(1)}"')
+
+            with open(out_heroes_path, "w", encoding="utf-8") as file:
+                file.write(
+                    re.sub(
+                        r'"Tokens"\s*\n\s*{',
+                        f'"Tokens" {{\n\t\t{"\n\t\t".join(lines)}',
+                        content,
+                    )
+                )
 
     def action_save(self) -> None:
         """Save the modified heroes.vdata to the output path."""
@@ -319,6 +379,7 @@ class AbilityApp(App):
         kv3.write(
             self.abilities_vdata, str(self.config.output_path / "abilities.vdata")
         )
+        self.save_aditional_localization()
         self.notify(f"Saved to {str(self.config.output_path)}")
 
     def action_find_hero(self) -> None:

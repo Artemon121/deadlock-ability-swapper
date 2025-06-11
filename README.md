@@ -34,7 +34,7 @@ poetry install
 
 1. Open `Deadlock/game/citadel/pak01_dir.vpk` in Source 2 Viewer, then decompile & export `scripts/heroes.vdata` and `scripts/abilities.vdata`
 2. Copy `config.example.toml`, rename it to `config.toml` and fill out all settings in it
-3. Run the script:
+3. Run the script (it may take some time to load):
 
 ```sh
 poetry run python app.py
@@ -49,4 +49,4 @@ Controls:
 - `Ctrl+S`: Save changes
 - `Ctrl+Q`: Quit
 
-4. Compile and pack the modded `heroes.vdata` and `abilities.vdata` like with any other Deadlock mod. I recommend using [DeadPacker](https://github.com/Artemon121/DeadPacker).
+4. Compile and pack the generated files like with any other Deadlock mod. I recommend using [DeadPacker](https://github.com/Artemon121/DeadPacker).
