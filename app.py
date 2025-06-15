@@ -370,6 +370,7 @@ class AbilityApp(App):
                 continue
 
             value["m_bDisabled"] = hero.disabled
+            value["m_bPlayerSelectable"] = True
             value["m_bInDevelopment"] = hero.hero_labs
             value["m_bAvailableInHeroLabs"] = hero.hero_labs
             value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"] = hero.ability_weapon
