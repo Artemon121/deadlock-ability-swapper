@@ -2,14 +2,14 @@
 
 [[package]]
 name = "keyvalues3"
-version = "0.2"
+version = "0.3"
 description = "Read and write Valve's KeyValues3 format"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "keyvalues3-0.2-py3-none-any.whl", hash = "sha256:1404c55b8a46f16d7081063bdeda573ba2424a4e3eb8db0a4da198cdb0e3ca5a"},
-    {file = "keyvalues3-0.2.tar.gz", hash = "sha256:df207f16c0b782930180221436b1243590473df0be785cdf19e102a744365888"},
+    {file = "keyvalues3-0.3-py3-none-any.whl", hash = "sha256:684b516e778431d4f0aecee44ce162fb3cfe96c39cd27427f6252b3ba5f8f7d3"},
+    {file = "keyvalues3-0.3.tar.gz", hash = "sha256:107538df498509c0cccfed0568c571a5ae4553d21af340a72ec8758d506f2ac5"},
 ]
 
 [package.dependencies]
@@ -388,4 +388,4 @@ test = ["coverage", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.1"
 python-versions = "<4.0.0,>=3.12"
-content-hash = "1cea613882ac5a78920a97669b6b1fecc795e04952a21ee0753d2fdaed5f7103"
+content-hash = "e6a4f4cdbe6ab95f8fc80359d9c365a1707c21cf302061c6002c787f801c060b"

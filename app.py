@@ -81,12 +81,7 @@ class AbilityApp(App):
 
     def load_abilities(self) -> None:
         """Load abilities from abilities.vdata"""
-        # hack because keyvalues3 library doesn't like when flags are sperated from values
-        with open(self.config.abilities_vdata_path, "r") as file:
-            vdata_string = file.read()
-        vdata_string = re.sub(r"(?:subclass:)\n\s*{", "subclass:{", vdata_string)
-        buffer = io.StringIO(vdata_string)
-        self.abilities_vdata = kv3.read(buffer)
+        self.abilities_vdata = kv3.read(self.config.abilities_vdata_path)
         self.abilities_vdata.pop("_include")
 
     def load_locale(self) -> None:
