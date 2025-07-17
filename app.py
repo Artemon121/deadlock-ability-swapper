@@ -1,11 +1,10 @@
-import io
 import os
 import re
 import shutil
 from dataclasses import dataclass
 
 import keyvalues3 as kv3
-from pyfzf.pyfzf import FzfPrompt
+from iterfzf import iterfzf
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.coordinate import Coordinate
@@ -393,16 +392,19 @@ class AbilityApp(App):
     def action_find_hero(self) -> None:
         """Find hero by localized name and select it in the table"""
         table = self.query_one(DataTable)
-        fzf = FzfPrompt()
         with self.suspend():
-            selected_items = fzf.prompt(self.localized_heroes.values(), "-i +m")
-            if len(selected_items) == 0:
+            try:
+                selected_item: str = iterfzf(
+                    self.localized_heroes.values(),
+                    case_sensitive=False,
+                )
+            except KeyboardInterrupt:
                 return
 
         reversed_localized_heroes = {
             value: key for key, value in self.localized_heroes.items()
         }
-        selected_hero = reversed_localized_heroes[selected_items[0]]
+        selected_hero = reversed_localized_heroes[selected_item]
         row = table.get_row_index(selected_hero)
         column = table.get_column_index("name")
         table.move_cursor(row=row, column=column, animate=True)
@@ -430,16 +432,19 @@ class AbilityApp(App):
         if column_key is None or hero_name is None:
             return
 
-        fzf = FzfPrompt()
         with self.suspend():
-            selected_items = fzf.prompt(self.localized_abilities.values(), "-i +m")
-            if len(selected_items) == 0:
+            try:
+                selected_item: str = iterfzf(
+                    self.localized_abilities.values(),
+                    case_sensitive=False,
+                )
+            except KeyboardInterrupt:
                 return
 
         reversed_localized_abilities = {
             value: key for key, value in self.localized_abilities.items()
         }
-        selected_ability = reversed_localized_abilities[selected_items[0]]
+        selected_ability = reversed_localized_abilities[selected_item]
 
         self.heroes[hero_name].__setattr__(column_key, selected_ability)
         if not self.localize_table:

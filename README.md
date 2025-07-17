@@ -13,7 +13,6 @@ A script to quickly swap hero abilities for ability draft.
 - [Python](https://www.python.org/downloads) (3.12 or later)
 - [Poetry](https://python-poetry.org/docs/#installation)
 - [Source 2 Viewer](https://valveresourceformat.github.io/)
-- [fzf](https://junegunn.github.io/fzf/installation/) (must be installed and available in PATH)
 
 ### Steps
 
