@@ -1,6 +1,6 @@
 [project]
 name = "deadlock-ability-swapper"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple script to quickly swap out hero abilities."
 authors = [
     {name = "Artemon121",email = "60071510+Artemon121@users.noreply.github.com"}
