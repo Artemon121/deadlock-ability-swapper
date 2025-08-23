@@ -91,8 +91,8 @@ class AbilityApp(App):
             / "citadel"
             / "resource"
             / "localization"
-            / "citadel_gc"
-            / "citadel_gc_english.txt"
+            / "citadel_gc_hero_names"
+            / "citadel_gc_hero_names_english.txt"
         )
         citadel_heroes_path = (
             self.config.deadlock_path
@@ -106,7 +106,7 @@ class AbilityApp(App):
 
         pattern = r'"([^"]*)"\s+(?:"(.*)")'
         locale_citadel_gc = {}
-        locale_citadel_heroes = {}
+        locale_gc_hero_names = {}
 
         with open(citadel_gc_path, "r", encoding="utf-8") as file:
             lines = file.readlines()
@@ -122,10 +122,10 @@ class AbilityApp(App):
                 match = re.search(pattern, line)
                 if not match:
                     continue
-                locale_citadel_heroes[match.group(1)] = match.group(2)
+                locale_gc_hero_names[match.group(1)] = match.group(2)
 
         for name, hero in self.heroes.items():
-            localized_name = locale_citadel_gc.get(name, name)
+            localized_name = locale_citadel_gc.get(f"{name}:n", name)
             self.localized_heroes[name] = localized_name
 
             abilities = {
@@ -155,7 +155,7 @@ class AbilityApp(App):
                 if ability in self.localized_abilities:
                     continue
 
-                base_name = locale_citadel_heroes.get(ability, ability)
+                base_name = locale_gc_hero_names.get(ability, ability)
                 users = self.ability_users.get(ability, [])
                 self.localized_abilities[ability] = f"{base_name} ({', '.join(users)})"
 
@@ -164,10 +164,10 @@ class AbilityApp(App):
                 name == "generic_data_type"
                 or name in self.localized_abilities
                 or "upgrade" in name
-                or locale_citadel_heroes.get(name, "") == "Melee"
+                or locale_gc_hero_names.get(name, "") == "Melee"
             ):
                 continue
-            ability_localized = locale_citadel_heroes.get(name, name)
+            ability_localized = locale_gc_hero_names.get(name, name)
             self.localized_abilities[name] = f"{ability_localized} (Unknown)"
 
     def compose(self) -> ComposeResult:
