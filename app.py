@@ -59,12 +59,15 @@ class AbilityApp(App):
             if key == "generic_data_type":
                 continue
 
+            if "m_HeroID" not in value or "m_mapBoundAbilities" not in value:
+                continue
+
             try:
                 hero = Hero(
-                    id=value["m_HeroID"],
+                    id=int(value["m_HeroID"]),
                     name=key,
-                    disabled=value["m_bDisabled"],
-                    hero_labs=value["m_bInDevelopment"],
+                    disabled=value.get("m_bDisabled", False),
+                    hero_labs=value.get("m_bInDevelopment", False),
                     ability_weapon=value["m_mapBoundAbilities"]["ESlot_Weapon_Primary"],
                     ability_1=value["m_mapBoundAbilities"]["ESlot_Signature_1"],
                     ability_2=value["m_mapBoundAbilities"]["ESlot_Signature_2"],
@@ -242,6 +245,9 @@ class AbilityApp(App):
 
         If the ability type is already Signature, returns the input name.
         """
+        if ability_name not in self.abilities_vdata.keys():
+            return ability_name
+
         if (
             self.abilities_vdata[ability_name]["m_eAbilityType"]
             == "EAbilityType_Signature"
@@ -262,6 +268,9 @@ class AbilityApp(App):
 
         If the ability type is already Ultimate, returns the input name.
         """
+        if ability_name not in self.abilities_vdata.keys():
+            return ability_name
+
         if (
             self.abilities_vdata[ability_name]["m_eAbilityType"]
             == "EAbilityType_Ultimate"
@@ -296,7 +305,7 @@ class AbilityApp(App):
 
         return output
 
-    def save_aditional_localization(self) -> None:
+    def save_additional_localization(self) -> None:
         for language in [
             "brazilian",
             "czech",
@@ -386,7 +395,7 @@ class AbilityApp(App):
         kv3.write(
             self.abilities_vdata, str(self.config.output_path / "abilities.vdata")
         )
-        self.save_aditional_localization()
+        self.save_additional_localization()
         self.notify(f"Saved to {str(self.config.output_path)}")
 
     def action_find_hero(self) -> None:
