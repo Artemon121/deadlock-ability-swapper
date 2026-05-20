@@ -6,6 +6,9 @@ A script to quickly swap hero abilities for ability draft.
 
 ![Screenshot](./Assets/Screenshot_1.png)
 
+> [!warning]
+> This project is not actively maintaned. I recommend using Binger's web-based Ability Draft tool instead: https://deadlockabilitydraft.com
+
 ## Installation
 
 ### Prerequisites
